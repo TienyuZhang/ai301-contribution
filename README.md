@@ -1,9 +1,9 @@
 # Contribution [#1]: [Incorrect spelling for the Mongolian currency name]
 
-**Contribution Number:** [1]  
-**Student:** [Tienyu Zhang]  
-**Issue:** [https://github.com/medusajs/medusa/issues/14071]
-**Status:** [Phase I] [Complete]
+**Contribution Number:** 1  
+**Student:** Tienyu Zhang 
+**Issue:** https://github.com/medusajs/medusa/issues/14071
+**Status:** Phase I Complete
 
 ---
 
@@ -21,24 +21,17 @@ Self-contained, clearly scoped, no environment setup required to understand the 
 
 ### Problem Description
 
-[In your own words, what's broken or missing?]
 The Mongolian currency's spelling is incorrect.
 
 ### Expected Behavior
-
-[What should happen?]
 
 The Mongolian currency's correct spelling is "Mongolian Tugrik" (as supported by the Bank of Mongolia and other major financial institutions).
 
 ### Current Behavior
 
-[What actually happens?]
-
 The Mongolian currency (MNT) is currently named "Mongolian Tugrig" in the codebase.
 
 ### Affected Components
-
-[Which parts of the codebase are involved?]
 
 The incorrect spelling appears in the following files:
 - packages/core/utils/src/defaults/currencies.ts — name: "Mongolian Tugrig" and name_plural: "Mongolian Tugrugs"
