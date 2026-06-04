@@ -1,4 +1,4 @@
-# Contribution [#1]: [Incorrect spelling for the Mongolian currency name]
+# Contribution 1: Incorrect spelling for the Mongolian currency name
 
 **Contribution Number:** 1  
 
