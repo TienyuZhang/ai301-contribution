@@ -1,15 +1,16 @@
 # Contribution [#1]: [Incorrect spelling for the Mongolian currency name]
 
 **Contribution Number:** 1  
+
 **Student:** Tienyu Zhang 
+
 **Issue:** https://github.com/medusajs/medusa/issues/14071
+
 **Status:** Phase I Complete
 
 ---
 
 ## Why I Chose This Issue
-
-[1-2 paragraphs explaining why this issue interests you, how it matches your skills/learning goals, what you hope to learn]
 
 A simple typo/data fix in the currency list — the name for the Mongolian currency (Tögrög) is misspelled. No deep codebase knowledge needed. Perfect first PR.
 
