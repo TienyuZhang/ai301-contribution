@@ -4,7 +4,7 @@
 
 **Student:** Tienyu Zhang 
 
-**Issue:** https://github.com/medusajs/medusa/issues/14071
+**Issue:** https://github.com/kubedoio/rustchat/issues/92
 
 **Status:** Phase I Complete
 
@@ -12,9 +12,7 @@
 
 ## Why I Chose This Issue
 
-A simple typo/data fix in the currency list — the name for the Mongolian currency (Tögrög) is misspelled. No deep codebase knowledge needed. Perfect first PR.
-
-Self-contained, clearly scoped, no environment setup required to understand the fix. Only need to find the currency data file, fix a misspelled name, done. It'll teach me the PR workflow without any code risk.
+I have hands-on experience with backend input validation — both at AWS and in my TCP server project — so this issue felt like a natural fit. It's also well-scoped with a clear goal: add missing tests for a specific code path. The risk/standard tag signals a straightforward, unambiguous change, making it an ideal first contribution to learn the codebase before tackling more complex issues.
 
 ---
 
@@ -22,22 +20,22 @@ Self-contained, clearly scoped, no environment setup required to understand the 
 
 ### Problem Description
 
-The Mongolian currency's spelling is incorrect.
+The channel creation API endpoint has no test coverage for invalid inputs (empty strings, illegal characters, names exceeding length limits), leaving the validation logic unverified and prone to silent regressions.
 
 ### Expected Behavior
 
-The Mongolian currency's correct spelling is "Mongolian Tugrik" (as supported by the Bank of Mongolia and other major financial institutions).
+The backend returns a 400 Bad Request with a descriptive error message for any invalid channel name, and no channel is created. These cases are covered by automated tests in CI.
 
 ### Current Behavior
 
-The Mongolian currency (MNT) is currently named "Mongolian Tugrig" in the codebase.
+No backend tests exist for invalid channel name inputs, so there is no automated guarantee the API correctly rejects malformed values.
 
 ### Affected Components
 
-The incorrect spelling appears in the following files:
-- packages/core/utils/src/defaults/currencies.ts — name: "Mongolian Tugrig" and name_plural: "Mongolian Tugrugs"
-- packages/admin/dashboard/src/lib/data/currencies.ts — name: "Mongolian Tugrig"
-- packages/plugins/loyalty/src/admin/lib/currencies.ts — name: "Mongolian Tugrig"
+- Channel creation endpoint — the POST /channels route handler where validation should be enforced
+- Validation logic — model-level or middleware input checks for channel name constraints
+- Backend test suite — where the new test cases will be added
+- CI pipeline — ensures the validation contract is protected on every future PR
 
 ---
 
