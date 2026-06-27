@@ -4,38 +4,32 @@
 
 **Student:** Tienyu Zhang 
 
-**Issue:** https://github.com/kubedoio/rustchat/issues/92
+**Issue:** https://github.com/Doenet/DoenetML/issues/802
 
 **Status:** Phase I Complete
 
 ---
 
 ## Why I Chose This Issue
-
-I have hands-on experience with backend input validation — both at AWS and in my TCP server project — so this issue felt like a natural fit. It's also well-scoped with a clear goal: add missing tests for a specific code path. The risk/standard tag signals a straightforward, unambiguous change, making it an ideal first contribution to learn the codebase before tackling more complex issues.
+DoenetML is an NSF-funded open-source markup language powering interactive math education at scale. This issue is a well-scoped testing task in a TypeScript parser package — directly aligned with my background in software testing (multi-threaded TCP server, AWS CloudWatch component isolation) and my interest in education technology. It lets me make a meaningful contribution to a real academic platform while learning a modern TypeScript/parser testing codebase from the ground up.
 
 ---
 
 ## Understanding the Issue
 
 ### Problem Description
-
-The channel creation API endpoint has no test coverage for invalid inputs (empty strings, illegal characters, names exceeding length limits), leaving the validation logic unverified and prone to silent regressions.
+The DAST normalization module (packages/parser/src/dast-normalize/normalize-dast.ts) implements "sugar" — shorthand syntax transformations that convert simplified DoenetML markup into their full canonical DAST (DoenetML Abstract Syntax Tree) form. However, the corresponding test file (packages/parser/test/normalize-dast.test.ts) is missing test cases for three of these sugar transformations: solution/givenAnswer, aside/proof, and pretzel. This means the sugar logic for these components is unverified by automated tests.
 
 ### Expected Behavior
-
-The backend returns a 400 Bad Request with a descriptive error message for any invalid channel name, and no channel is created. These cases are covered by automated tests in CI.
+For each of the three sugar-enabled component pairs/groups, there should be test cases in normalize-dast.test.ts that verify: (1) the sugar input (shorthand markup) is correctly transformed into the expected full canonical DAST output by the normalizer, and (2) the transformation handles relevant edge cases (e.g. with and without children, with attributes, nested content). Tests should pass in CI on every future PR, protecting these transformations from regressions.
 
 ### Current Behavior
-
-No backend tests exist for invalid channel name inputs, so there is no automated guarantee the API correctly rejects malformed values.
+No tests exist for the solution/givenAnswer, aside/proof, and pretzel sugar transformations. If a future change accidentally breaks the normalization logic for these components, CI would not catch it — the regression would only surface at runtime in the rendered DoenetML output.
 
 ### Affected Components
-
-- Channel creation endpoint — the POST /channels route handler where validation should be enforced
-- Validation logic — model-level or middleware input checks for channel name constraints
-- Backend test suite — where the new test cases will be added
-- CI pipeline — ensures the validation contract is protected on every future PR
+packages/parser/src/dast-normalize/normalize-dast.ts — contains the sugar transformation logic being tested (read-only reference; no changes needed here)
+packages/parser/test/normalize-dast.test.ts — the test file where new test cases for solution/givenAnswer, aside/proof, and pretzel sugar must be added
+DoenetML components: <solution>, <givenAnswer>, <aside>, <proof>, and <pretzel> — the markup elements whose normalization sugar is currently untested
 
 ---
 
