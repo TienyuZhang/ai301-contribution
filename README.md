@@ -6,7 +6,7 @@
 
 **Issue:** https://github.com/Doenet/DoenetML/issues/802
 
-**Status:** Phase III Complete
+**Status:** Phase IV Complete - PR submitted
 
 ---
 
@@ -224,7 +224,7 @@ Confirmed the new tests are non-vacuous by temporarily stripping the bodies of `
 - [x] Follows project style guide (reuses the file's existing `lezerToDast` → `normalizeDocumentDast` → `toXml` assertion pattern; `prettier --check` clean)
 - [x] No breaking changes introduced (test-only change)
 
-**Maintainer Feedback:**
+**Maintainer Feedback:** [Not received yet]
 - [Date]: [Summary of feedback received]
 - [Date]: [How you addressed it]
 
