@@ -1,4 +1,4 @@
-# Contribution 1: Incorrect spelling for the Mongolian currency name
+# Contribution: Add test coverage for new sugar added
 
 **Contribution Number:** 1  
 
