@@ -6,7 +6,7 @@
 
 **Issue:** https://github.com/Doenet/DoenetML/issues/802
 
-**Status:** Phase I Complete
+**Status:** Phase II Complete
 
 ---
 
@@ -37,19 +37,24 @@ DoenetML components: <solution>, <givenAnswer>, <aside>, <proof>, and <pretzel> 
 
 ### Environment Setup
 
-[Notes on setting up your local development environment - challenges you faced, how you solved them]
+1. Forked [Doenet/DoenetML](https://github.com/Doenet/DoenetML) to my own GitHub account: [TienyuZhang/DoenetML](https://github.com/TienyuZhang/DoenetML).
+2. Cloned my fork locally with `git clone`.
+3. Confirmed my fork's `main` was up to date with `Doenet/DoenetML:main` before starting work.
+4. Created a dedicated feature branch, `add_test_coverage_for_new_sugar_added`, off `main` to isolate this contribution.
 
 ### Steps to Reproduce
 
-1. [Step 1]
-2. [Step 2]
-3. [Observed result]
+Since this issue is a missing-test-coverage gap rather than a runtime bug, "reproducing" it means confirming the gap actually exists in the code:
+
+1. Opened `packages/parser/src/dast-normalize/normalize-dast.ts` and located the sugar transformation logic for the `solution`/`givenAnswer`, `aside`/`proof`, and `pretzel` component pairs/groups.
+2. Opened `packages/parser/test/normalize-dast.test.ts` and searched for existing test cases referencing these components.
+3. **Observed result:** no test cases exist for any of the three sugar transformations, confirming the gap described in the issue — the sugar logic runs unverified by CI.
 
 ### Reproduction Evidence
 
-- **Commit showing reproduction:** [Link to commit in your fork]
-- **Screenshots/logs:** [If applicable]
-- **My findings:** [What you discovered during reproduction]
+- **Commit showing reproduction:** No commits pushed to `add_test_coverage_for_new_sugar_added` yet. Since this is a coverage gap (not a bug with a reproducible failure), "reproduction" is the confirmation above rather than a runnable repro commit.
+- **Screenshots/logs:** Grep output over `normalize-dast.test.ts` showing zero matches for `solution`, `givenAnswer`, `aside`, `proof`, and `pretzel`.
+- **My findings:** The sugar transformation logic for all three component pairs/groups is implemented in `normalize-dast.ts`, but `normalize-dast.test.ts` has no corresponding test cases — matching the issue description exactly and confirming there is real work to do here, not just a documentation gap.
 
 ---
 
@@ -57,30 +62,42 @@ DoenetML components: <solution>, <givenAnswer>, <aside>, <proof>, and <pretzel> 
 
 ### Analysis
 
-[Your analysis of the root cause - what's causing the issue?]
+This is a coverage gap, not a logic bug — the sugar itself is implemented and already wired up in `pluginComponentSugar`'s switch statement in `normalize-dast.ts`:
+
+- **`solution` / `givenAnswer`** (lines 200–203): unconditionally call `postponeRenderSugar(node)`. That function (`component-sugar/postponeRender.ts`) pulls out any `<title>` children, wraps everything else in a `<_postponeRenderContainer>`, and asserts it is only ever called on `solution`/`givenAnswer`/`aside`/`proof`.
+- **`aside` / `proof`** (lines 204–220): call the *same* `postponeRenderSugar`, but only when a `postponeRendering` attribute is present **and** truthy — truthy meaning the attribute has no children (bare `postponeRendering`) or a single text child equal to `"true"` case-insensitively. Any other value (e.g. `postponeRendering="false"`) leaves the node untouched.
+- **`pretzel`** (lines 221–223): calls `pretzelSugar(node)` (`component-sugar/pretzel.ts`), which (1) renames any `<answer>` that is a direct child of a direct `<problem>` child to `<givenAnswer>`, (2) wraps all children in a single `<_pretzelArranger>`, and (3) forwards the `mode` attribute onto that arranger if present.
+
+Searching `normalize-dast.test.ts` confirms the gap: there is no test that calls `normalizeDocumentDast` on `<solution>`, `<givenAnswer>`, `<proof>`, or `<pretzel>` and asserts on the resulting shape, and no test asserts the `_postponeRenderContainer`/`_pretzelArranger` wrapping directly. The one adjacent test, `"marks dynamic children that are postponed with their parent"` (lines 90–120), uses `<aside postponeRendering>` but only asserts the *downstream* `deferUntilParentRendered` attribute on `_dynamicChildren` — it never asserts the `postponeRenderSugar` output itself, and it doesn't touch `proof`, `solution`, `givenAnswer`, or `pretzel` at all. So the conditional branch and the two other sugars are completely unverified.
 
 ### Proposed Solution
 
-[High-level description of your fix approach]
+Add new `it(...)` blocks to `packages/parser/test/normalize-dast.test.ts`, following the file's existing convention (`lezerToDast` → `normalizeDocumentDast` → `toXml`, asserted against a literal expected XML string, as in `"Sugars in repeat template..."` and `"Sugars in cases of conditionalContent"`):
+
+1. **solution/givenAnswer** — assert both tags always wrap their non-`<title>` children in `<_postponeRenderContainer>`, and that a leading `<title>` is hoisted out of the container.
+2. **aside/proof** — assert the conditional branch directly: no `postponeRendering` attribute → untouched; bare `postponeRendering` or `postponeRendering="true"`/`"TRUE"` → wrapped; `postponeRendering="false"` → untouched.
+3. **pretzel** — assert children are wrapped in `<_pretzelArranger>`; that a direct `<answer>` inside a direct `<problem>` child is renamed to `<givenAnswer>` (while an `<answer>` *not* nested in a `<problem>` is left alone); and that a `mode` attribute is forwarded onto the arranger only when present.
 
 ### Implementation Plan
 
 Using UMPIRE framework (adapted):
 
-**Understand:** [Restate the problem]
+**Understand:** `normalize-dast.test.ts` has no coverage for the `solution`/`givenAnswer`, `aside`/`proof`, and `pretzel` sugar branches in `pluginComponentSugar`, even though the transformation logic for all three exists and is exercised in production. The fix is test-only — add cases that pin down current, correct behavior so regressions are caught in CI.
 
-**Match:** [What similar patterns/solutions exist in the codebase?]
+**Match:** The file already has a clear pattern for exactly this kind of test — see `"Sugars in repeat template and _repeatSetup children"` and `"Sugars in cases of conditionalContent"` — each `it()` builds several `source` strings, runs them through `lezerToDast` + `normalizeDocumentDast`, and compares `toXml(...)` output against a literal expected string. New tests should reuse this style rather than introducing a new assertion pattern.
 
-**Plan:** [Step-by-step implementation plan]
-1. [Modify file X to do Y]
-2. [Add function Z]
-3. [Update tests]
+**Plan:**
+1. Add `it("Sugars solution/givenAnswer into a _postponeRenderContainer", ...)` — cases with content only, and with a leading `<title>` plus content, for both `<solution>` and `<givenAnswer>`.
+2. Add `it("Sugars aside/proof into a _postponeRenderContainer only when postponeRendering is truthy", ...)` — cases: no attribute (unchanged), bare `postponeRendering` (wrapped), `postponeRendering="true"`/mixed-case (wrapped), `postponeRendering="false"` (unchanged) — for both `<aside>` and `<proof>`.
+3. Add `it("Sugars pretzel into a _pretzelArranger and renames nested answers to givenAnswer", ...)` — cases: plain `<problem><answer/></problem>` inside `<pretzel>` (renamed + wrapped), a bare `<answer>` not inside `<problem>` (left as `<answer>`), and a `mode` attribute (forwarded onto `_pretzelArranger`) vs. no `mode` (arranger has no `mode` attribute).
+4. Run the parser package's test suite locally (`vitest`/`npm test` in `packages/parser`) to confirm new tests pass and nothing existing regresses.
+5. Run lint/typecheck if configured for the package, since this is a TypeScript codebase with CI checks.
 
-**Implement:** [Link to your branch/commits as you work]
+**Implement:** Work happens on my fork's `add_test_coverage_for_new_sugar_added` branch: https://github.com/TienyuZhang/DoenetML/tree/add_test_coverage_for_new_sugar_added (commits to be linked here as they land).
 
-**Review:** [Self-review checklist - does it follow the project's contribution guidelines?]
+**Review:** Before opening the PR — confirm tests follow the existing file's style and naming, confirm no non-test files were touched (issue is test-only), confirm commit messages are descriptive, and check DoenetML's `CONTRIBUTING` guidelines for PR conventions.
 
-**Evaluate:** [How will you verify it works?]
+**Evaluate:** Run the full `packages/parser` test suite (not just this file) to check for regressions, and manually delete a line from `postponeRenderSugar`/`pretzelSugar` locally to confirm the new tests actually fail without the logic — proving they test the real behavior rather than passing vacuously.
 
 ---
 
@@ -88,18 +105,36 @@ Using UMPIRE framework (adapted):
 
 ### Unit Tests
 
-- [ ] Test case 1: [Description]
-- [ ] Test case 2: [Description]
-- [ ] Test case 3: [Description]
+Each case below asserts on `toXml(normalizeDocumentDast(dast))` for a single sugar in isolation, following the existing file's convention:
+
+- [ ] `<solution>` with plain content (no `<title>`) → all children wrapped in a single `<_postponeRenderContainer>`.
+- [ ] `<solution>` with a leading `<title>` plus content → `<title>` hoisted out, remaining children wrapped in `<_postponeRenderContainer>`.
+- [ ] `<givenAnswer>` → same two cases as `<solution>` (same code path, `postponeRenderSugar` is unconditional for both).
+- [ ] `<aside>` with **no** `postponeRendering` attribute → children left untouched (no `_postponeRenderContainer`).
+- [ ] `<aside postponeRendering>` (bare attribute, no value) → children wrapped in `<_postponeRenderContainer>`.
+- [ ] `<aside postponeRendering="true">` and `<aside postponeRendering="TRUE">` (case-insensitive) → wrapped.
+- [ ] `<aside postponeRendering="false">` → untouched.
+- [ ] `<proof>` → same four cases as `<aside>` (identical branch, currently has zero coverage of any kind).
+- [ ] `<pretzel>` with plain content → all children wrapped in a single `<_pretzelArranger>`.
+- [ ] `<pretzel mode="...">` → `mode` attribute forwarded onto `<_pretzelArranger>`; `<pretzel>` with no `mode` → arranger has no `mode` attribute.
+- [ ] `<pretzel><problem><answer/></problem></pretzel>` → the `<answer>` is renamed to `<givenAnswer>`.
+- [ ] `<pretzel><answer/></pretzel>` (an `<answer>` **not** nested in a `<problem>`) → left as `<answer>`, confirming the rename is scoped to direct `<problem>` children only.
 
 ### Integration Tests
 
-- [ ] Integration scenario 1
-- [ ] Integration scenario 2
+These verify how the new sugars compose with the rest of the normalization pipeline — the kind of interaction a purely isolated unit test would miss:
+
+- [ ] **Pretzel → postponeRender cascade:** `visit()` (in `utils/visit.ts`) is pre-order and walks into a node's *mutated* children after its `enter` callback runs, so the `<givenAnswer>` produced by `pretzelSugar`'s rename is itself re-dispatched through `pluginComponentSugar`'s switch statement in the same tree walk. Confirm `<pretzel><problem><answer/></problem></pretzel>` ends with the renamed `<givenAnswer>` **also** wrapped in its own `<_postponeRenderContainer>` — i.e. the two sugars compose, rather than the renamed node silently skipping the `solution`/`givenAnswer` branch.
+- [ ] **Aside/proof + dynamicChildren sugar:** extend the existing `"marks dynamic children that are postponed with their parent"` test (currently `<aside>`-only) to `<proof>`, confirming `deferUntilParentRendered` is set on `<_dynamicChildren>` when `postponeRendering` is truthy and absent otherwise, for both tags.
+- [ ] **Nested sectioning component:** a `<problem>` (which supports dynamic children) containing a `<solution>` (which always gets `_postponeRenderContainer`) — confirm the outer `<problem>`'s own `_dynamicChildren` sugar is unaffected by the inner `<solution>`'s unconditional postpone-render wrapping.
 
 ### Manual Testing
 
-[What you tested manually and results]
+Not yet performed — planned once the unit/integration tests above are written:
+
+- [ ] Run the full `packages/parser` test suite locally (not just `normalize-dast.test.ts`) to confirm the new tests pass and nothing pre-existing regresses.
+- [ ] Sanity-check that the new tests are non-vacuous: temporarily comment out the body of `postponeRenderSugar` and `pretzelSugar` locally and confirm the corresponding new tests fail, then revert.
+- [ ] Author a small `.doenet` snippet using `<solution>`, `<aside postponeRendering>`, `<proof>`, and `<pretzel>` together and visually inspect the resulting DAST/XML to confirm it matches what the automated tests assert.
 
 ---
 
