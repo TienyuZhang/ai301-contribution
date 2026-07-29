@@ -54,6 +54,10 @@ Since this issue is a missing-test-coverage gap rather than a runtime bug, "repr
 
 - **Commit showing reproduction:** No commits pushed to `add_test_coverage_for_new_sugar_added` yet. Since this is a coverage gap (not a bug with a reproducible failure), "reproduction" is the confirmation above rather than a runnable repro commit.
 - **Screenshots/logs:** Grep output over `normalize-dast.test.ts` showing zero matches for `solution`, `givenAnswer`, `aside`, `proof`, and `pretzel`.
+
+  ![All 27 existing normalize-dast.test.ts tests passing, with no test names referencing solution, givenAnswer, proof, or pretzel](Screenshots/OrignialTests.png)
+
+  Running the full existing suite (`npx vitest run test/normalize-dast.test.ts`) confirms all 27 current tests pass, and none of their names reference `solution`, `givenAnswer`, `proof`, or `pretzel` — the baseline this contribution adds coverage on top of.
 - **My findings:** The sugar transformation logic for all three component pairs/groups is implemented in `normalize-dast.ts`, but `normalize-dast.test.ts` has no corresponding test cases — matching the issue description exactly and confirming there is real work to do here, not just a documentation gap.
 
 ---
