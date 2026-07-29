@@ -6,7 +6,7 @@
 
 **Issue:** https://github.com/Doenet/DoenetML/issues/802
 
-**Status:** Phase II Complete
+**Status:** Phase III Complete
 
 ---
 
@@ -144,19 +144,38 @@ Not yet performed — planned once the unit/integration tests above are written:
 
 ## Implementation Notes
 
-### Week [X] Progress
+### Week 7 Progress
 
-[What you built this week, challenges faced, decisions made]
+Planning phase, before any test code was written:
 
-### Week [Y] Progress
+- Read issue #802 and confirmed the gap was test-only: `pluginComponentSugar` in `normalize-dast.ts` already implements sugar for `solution`/`givenAnswer`, `aside`/`proof`, and `pretzel`, but `normalize-dast.test.ts` had zero test cases exercising any of the three.
+- Forked the repo, cloned locally, and created the `add_test_coverage_for_new_sugar_added` branch off an up-to-date `main`.
+- Read through `postponeRenderSugar` (`component-sugar/postponeRender.ts`) and `pretzelSugar` (`component-sugar/pretzel.ts`) to understand the exact transformation logic and the conditional branch for `aside`/`proof` (only sugared when `postponeRendering` is truthy).
+- Drafted the Understanding/Solution Approach/Testing Strategy sections above, listing the unit and integration cases needed, before writing any code.
 
-[Continue documenting as you work]
+### Week 8 Progress
+
+Implementation phase:
+
+- **Environment setup took longer than expected.** `npm ci` was needed first (`node_modules` was out of sync with the lockfile — missing `@lezer/lr`). After that, two more workspace packages turned out to need an explicit build before their `dist/` exports would resolve: `@doenet/static-assets` (for `entity-map`, used by the parser) and `@doenet/i18n` (needed by an unrelated test file, `coded-dast-errors.test.ts`, when running the full package suite). Fixed with `npm run build -w @doenet/static-assets` and `npm run build -w @doenet/i18n`.
+- **Learned vitest must be run scoped to `packages/parser`**, not the repo root — the `.peggy` file loader plugin that the parser needs lives in `packages/parser/vite.config.ts` and isn't picked up when vitest runs from the root.
+- Before writing any assertions, probed the real normalizer output for each case with disposable scratch test files (since printed values via `console.log` were swallowed by vitest, used `expect(...).toEqual("XXXX")` to force the actual value into the diff output) — this caught a couple of behaviors I hadn't predicted from just reading the source, most notably that the `<answer>`→`<givenAnswer>` rename inside `pretzelSugar` gets *re-visited* by the same tree walk and picks up `givenAnswer`'s own postpone-render sugar (an empty `<_postponeRenderContainer />`).
+- Implemented 4 new `it(...)` blocks in `normalize-dast.test.ts` (139 lines): `solution`/`givenAnswer` wrapping, `aside`/`proof` conditional wrapping (including case-insensitive `postponeRendering="TRUE"` and the `"false"` opt-out), `pretzel`'s arranger + rename + cascade + `mode` forwarding, and a regression guard confirming a `<solution>` nested inside a `<problem>` doesn't leak `deferUntilParentRendered` onto the outer `problem`'s own dynamic-children sugar.
+- Deliberately skipped `descriptionAttributeSugar` coverage, matching the issue's own note that it's a lower-priority deprecation shim.
+- Verified against the full `packages/parser` suite: 297/297 tests passing, no regressions.
+- Proved the new tests are non-vacuous: temporarily stripped the bodies of `postponeRenderSugar` and `pretzelSugar`, confirmed the 5 relevant tests failed, then restored the original source (confirmed clean via `git status`/`git diff`).
+- Added targeted comments to the new tests explaining the non-obvious parts (the pre-order visit cascade, what `deferUntilParentRendered` signals, why the rename is scoped to direct `problem > answer` pairs) so teammates don't have to re-derive them from source.
+- Ran `prettier --check` on the modified file — no formatting issues.
+- Committed as `562ca3188`.
 
 ### Code Changes
 
-- **Files modified:** [List]
-- **Key commits:** [Links to important commits]
-- **Approach decisions:** [Why you chose certain approaches]
+- **Files modified:** `packages/parser/test/normalize-dast.test.ts` only — test-only change, no production code touched.
+- **Key commits:** `562ca3188` "added test coverage for new sugar added" — https://github.com/Doenet/DoenetML/commit/562ca31884374cd8c9c5d30cb5b8557384bc58de
+- **Approach decisions:**
+  - Reused the file's existing `lezerToDast` → `normalizeDocumentDast` → `toXml` assertion pattern (as seen in `"Sugars in repeat template..."` and `"Sugars in cases of conditionalContent"`) rather than introducing a new assertion style.
+  - Verified real (not assumed) sugar output via disposable scratch tests before writing final assertions, to avoid encoding incorrect expectations into the suite.
+  - Scoped the implementation strictly to what the issue asked for (`solution`/`givenAnswer`, `aside`/`proof`, `pretzel`), plus one extra regression-guard test for a cross-sugar interaction (`problem` containing `solution`) that isn't explicitly named in the issue but was a real risk surfaced during analysis.
 
 ---
 
