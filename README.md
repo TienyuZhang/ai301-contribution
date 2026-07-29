@@ -29,7 +29,7 @@ No tests exist for the solution/givenAnswer, aside/proof, and pretzel sugar tran
 ### Affected Components
 packages/parser/src/dast-normalize/normalize-dast.ts — contains the sugar transformation logic being tested (read-only reference; no changes needed here)
 packages/parser/test/normalize-dast.test.ts — the test file where new test cases for solution/givenAnswer, aside/proof, and pretzel sugar must be added
-DoenetML components: <solution>, <givenAnswer>, <aside>, <proof>, and <pretzel> — the markup elements whose normalization sugar is currently untested
+DoenetML components: `solution`, `givenAnswer`, `aside`, `proof`, and `pretzel` — the markup elements whose normalization sugar is currently untested
 
 ---
 
