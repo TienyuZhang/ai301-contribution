@@ -181,15 +181,54 @@ Implementation phase:
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when submitted]
+**PR Link:** https://github.com/Doenet/DoenetML/pull/1596
 
-**PR Description:** [Draft or final PR description - much of the content above can be adapted]
+**PR Description:**
+
+### What does this PR do?
+
+Adds test coverage in `packages/parser/test/normalize-dast.test.ts` for three DAST normalization sugar transformations that had none: `solution`/`givenAnswer` (unconditional postpone-render wrapping), `aside`/`proof` (postpone-render wrapping conditional on `postponeRendering`), and `pretzel` (arranger wrapping plus the `answer`→`givenAnswer` rename). This is a test-only change — no production code is modified.
+
+### Why was this PR needed?
+
+Issue #802 flagged that `pluginComponentSugar` in `normalize-dast.ts` already implements sugar for these three component groups, but `normalize-dast.test.ts` had no test cases exercising any of them — so a future regression in `postponeRenderSugar` or `pretzelSugar` would only surface at runtime instead of being caught in CI. Investigating confirmed the gap exactly as described: zero existing tests referenced `solution`, `givenAnswer`, `aside`, `proof`, or `pretzel`.
+
+### What are the relevant issue numbers?
+
+Issue #802
+
+### Screenshots / Recordings
+
+Test output for the affected file:
+
+![All 31 normalize-dast.test.ts tests passing after adding the 4 new sugar test cases, including the new solution/givenAnswer, aside/proof, pretzel, and nested-problem regression-guard tests](Screenshots/AfterAddingTests.png)
+
+```
+ Test Files  1 passed (1)
+      Tests  31 passed (31)
+```
+
+Full `packages/parser` suite (no regressions):
+
+```
+ Test Files  13 passed (13)
+      Tests  297 passed (297)
+```
+
+Confirmed the new tests are non-vacuous by temporarily stripping the bodies of `postponeRenderSugar`/`pretzelSugar` — all 5 relevant new tests failed as expected, then the source was restored unchanged.
+
+### Does this PR meet the acceptance criteria?
+
+- [x] Tests added for new/changed behavior
+- [x] All tests passing
+- [x] Follows project style guide (reuses the file's existing `lezerToDast` → `normalizeDocumentDast` → `toXml` assertion pattern; `prettier --check` clean)
+- [x] No breaking changes introduced (test-only change)
 
 **Maintainer Feedback:**
 - [Date]: [Summary of feedback received]
 - [Date]: [How you addressed it]
 
-**Status:** [Awaiting review / Iterating / Approved / Merged]
+**Status:** Awaiting review
 
 ---
 
@@ -197,20 +236,30 @@ Implementation phase:
 
 ### Technical Skills Gained
 
-[What you learned technically]
+- **Monorepo build orchestration:** learned that in this npm-workspaces + Wireit setup, a package's tests can fail with confusing "cannot find package" errors simply because a *different* workspace package (`@doenet/static-assets`, `@doenet/i18n`) hasn't had its `dist/` built yet — the fix is `npm run build -w <package>`, not a dependency reinstall.
+- **Vite/Vitest config scoping:** discovered that `packages/parser/vite.config.ts` registers a custom loader plugin for `.peggy` grammar files, and that plugin is only active when vitest is invoked from inside `packages/parser` — running from the repo root silently uses a different (or no) config and fails on import analysis.
+- **Forcing hidden output out of a test runner:** when `console.log` output was swallowed by vitest, used `expect(actual).toEqual("literal-placeholder")` to make the runner print the real value in its failure diff — a quick way to inspect real behavior without adding logging infrastructure.
+- **Reading a custom pre-order AST visitor:** worked through `utils/visit.ts` to confirm that mutating `node.children` inside an `enter` callback causes the *newly created* nodes to be walked and re-dispatched through the same sugar switch statement in the same pass — not an isolated one-shot transform.
+- **Non-vacuous test verification:** temporarily gutting the implementation under test (`postponeRenderSugar`/`pretzelSugar`) and confirming the new tests fail is a cheap, concrete way to prove a test suite is actually exercising the logic it claims to, rather than trusting that assertions "look right."
+- **More git commands, used with intent rather than by rote:** `git status`/`git diff --stat` to confirm a working tree is clean before and after a risky local experiment (gutting then restoring the sugar functions), `git log --oneline main..HEAD` to check exactly what a branch adds relative to `main`, and `git show <hash> --stat` to inspect what a specific commit actually touched.
+- **The end-to-end open-source contribution workflow**, start to finish on a real project: fork → clone → confirm the fork's `main` is current → create an isolated feature branch → read the issue and the relevant source until the actual gap is understood (not just skimmed) → plan the fix and get it reviewed before writing code → implement → verify (targeted tests, then the full package suite, then a non-vacuousness check) → commit with a descriptive message → open a PR that references the issue (`Closes #802`) with evidence a reviewer can check without re-running anything themselves → await maintainer feedback.
 
 ### Challenges Overcome
 
-[What was hard and how you solved it]
+- Hit three separate environment blockers in sequence before a single test could run: a stale `node_modules` missing `@lezer/lr` (fixed with `npm ci`), then two unbuilt workspace packages (`@doenet/static-assets`, `@doenet/i18n`) surfacing as unrelated-looking import errors, then the `.peggy`-loader/vitest-scoping issue. Each looked like a different kind of problem on the surface; tracing all three back to "environment/build state," not the test code, took some back-and-forth.
+- The `pretzel` → `givenAnswer` → postpone-render cascade wasn't something I could confidently predict from reading `pretzelSugar` and `postponeRenderSugar` in isolation — the interaction only becomes obvious once you know the tree walk is pre-order and re-reads mutated children. Rather than guess and risk encoding a wrong assumption into the test suite, I verified the actual output with disposable scratch tests before writing the final assertions.
+- I was unfamiliar with the whole process/workflow of contributing to an open-source project going in — fork vs. clone vs. branch, how a PR should reference an issue, what evidence a maintainer expects to see, how much process to document before touching code. This wasn't something I could resolve by reading `normalize-dast.ts` more carefully; it took actually going through the sequence once, end to end, on a real repo to internalize it.
 
 ### What I'd Do Differently Next Time
 
-[Reflection on your process]
+- Build all workspace-package dependencies up front (or run `npm run build:all`) before attempting to run any single package's tests, instead of discovering missing builds one error at a time.
+- Do the "probe real output with scratch tests" step *before* finalizing the Testing Strategy section, so the written plan is grounded in verified behavior from the start rather than needing a second confirmation pass afterward.
+- Note down the exact package-scoped test command (`cd packages/parser && npx vitest run <file>`) the first time it's needed, since it wasn't obvious upfront and cost a few iterations to land on.
 
 ---
 
 ## Resources Used
 
-- [Link to helpful documentation]
-- [Tutorial or Stack Overflow post that helped]
-- [GitHub issues or discussions that helped]
+- This repo's own [AGENTS.md](AGENTS.md) — project conventions, monorepo structure, and build/test commands.
+- Issue [#802](https://github.com/Doenet/DoenetML/issues/802) on Doenet/DoenetML.
+- No external tutorials, docs, or Stack Overflow posts were needed — the work was entirely source-reading and empirical verification within this repo (`normalize-dast.ts`, `component-sugar/postponeRender.ts`, `component-sugar/pretzel.ts`, `component-sugar/dynamicChildren.ts`, `pretty-printer/normalize/utils/visit.ts`, and the existing conventions in `normalize-dast.test.ts`).
