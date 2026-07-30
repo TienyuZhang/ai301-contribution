@@ -6,7 +6,7 @@
 
 **Issue:** https://github.com/Doenet/DoenetML/issues/802
 
-**Status:** Phase IV Complete - PR Approved
+**Status:** Phase IV Complete - PR Merged
 
 ---
 
@@ -228,7 +228,7 @@ Confirmed the new tests are non-vacuous by temporarily stripping the bodies of `
 - [7/29/2026]: Maintainer approved the overall approach ("Thanks for the PR. It looks good!") and requested two small changes: (1) a comment on the pretzel test claimed pretzel uses `<_postponeRenderContainer>` to keep a problem's answer hidden until revealed, but that's incorrect — the container is added onto the renamed `<givenAnswer>` as a harmless side effect of the pre-order visit cascade, but pretzel itself never reads or strips it, so it has no actual hiding effect; (2) since the PR was written with AI assistance, add a `Co-Authored-By` trailer to the commit so future maintainers can see the code's origin.
 - [7/29/2026]: Removed the incorrect parenthetical from the comment above the pretzel test in `normalize-dast.test.ts` (kept the accurate part: the arranger-wrapping and `answer`→`givenAnswer` rename), and committed the fix with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` appended to the commit message (`434b65bb2`, "Remove misleading comment about pretzel hiding answers").
 
-**Status:** Approved
+**Status:** Merged
 
 ---
 
