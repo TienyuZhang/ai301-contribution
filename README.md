@@ -168,7 +168,7 @@ Implementation phase:
 - Ran `prettier --check` on the modified file — no formatting issues.
 - Committed as `562ca3188`.
 
- ![All 27 existing normalize-dast.test.ts tests passing, with no test names referencing solution, givenAnswer, proof, or pretzel](Screenshots/SlackParticipationPhaseIII.png)
+ ![Slack Participation - PhaseIII](Screenshots/SlackParticipationPhaseIII.png)
 
 ### Code Changes
 
