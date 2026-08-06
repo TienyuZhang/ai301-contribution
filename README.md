@@ -168,6 +168,7 @@ Implementation phase:
 - Ran `prettier --check` on the modified file — no formatting issues.
 - Committed as `562ca3188`.
 
+- **Screenshots/logs:** 
  ![Slack Participation - PhaseIII](Screenshots/SlackParticipationPhaseIII.png)
 
 ### Code Changes
